@@ -1,5 +1,5 @@
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageSequence
 import math 
 import argparse
 parser = argparse.ArgumentParser(
@@ -20,8 +20,8 @@ def create_image(rgb_array, image_size):
                 pixels[x, y] = tuple(rgb_array[position])
     
     return image
-def convert_1bit_to_rgb_array(image_path):
-    image = Image.open(image_path).convert('1')
+def convert_1bit_to_rgb_array(image):
+    image = image.convert('1')
     width, height = image.size
     pixel_values = list(image.getdata()) 
 
@@ -38,8 +38,18 @@ def convert_1bit_to_rgb_array(image_path):
             rgb_array.append(rgb)
     return rgb_array, math.ceil(width / 3), height
 
+def process_image(image_path):
+    img = Image.open(image_path)
+    frames = []
+    for frame in ImageSequence.Iterator(img):
+        rgb_array, width, height = convert_1bit_to_rgb_array(frame)
+        subpixel_image = create_image(rgb_array, (width, height))
+        frames.append(subpixel_image)
+    if (getattr(img, "is_animated", True)):
+        frames[0].save("generated.gif", save_all=True, append_images=frames[1:], loop=0)
+    else:
+        frames[0].save("generated.png")
+    frames[0].show()
+
 image_path = args.filename
-rgb_array, width, height = convert_1bit_to_rgb_array(image_path)
-img = create_image(rgb_array, (width, height))
-img.save("generated.png")
-img.show()
+process_image(image_path)
